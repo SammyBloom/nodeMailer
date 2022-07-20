@@ -1,8 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { engine } = require('express-handlebars');
+const { engine }  = require('express-handlebars');
 const path = require('path');
 const nodemailer = require('nodemailer');
+require('dotenv').config();
+const { google } = require('googleapis');
 
 const app = express();
 
@@ -11,7 +13,6 @@ app.engine('handlebars', engine({
     layoutsDir: __dirname + "/views/layouts", extname: 'handlebars',
 }));
 app.set('view engine', 'handlebars');
-// app.set('views', './views');
 
 // Static folder
 app.use('/public', express.static(path.join(__dirname, 'public')));
@@ -40,43 +41,61 @@ app.post('/send', (req, res) => {
         <p>${req.body.message}</p>
     `;
 
-    async function main() {
+    const CLIENT_ID = process.env.OAUTH_CLIENTID;
+    const CLIENT_SECRET = process.env.CLIENT_SECRET;
+    const REDIRECT_URI = process.env.REDIRECT_URI;
+    const REFRESH_TOKEN = process.env.OAUTH_REFRESH_TOKEN;
 
-        // create reusable transporter object using the default SMTP transport
+    const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+    oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN});
+
+    try {
+        const accessToken = oAuth2Client.getAccessToken();
+
         let transporter = nodemailer.createTransport({
-            host: "smtp.gmail.email",
-            port: 587,
-            secure: false, // true for 465, false for other ports
+            service: 'gmail',
             auth: {
-                user: 'nwachiemi@gmail.com', // generated ethereal user
-                pass: 'Farawayland_12', // generated ethereal password
-            },
+                type: 'OAuth2',
+                user: process.env.MAIL_USERNAME,
+                clientId: CLIENT_ID,
+                clientSecret: CLIENT_SECRET,
+                refreshToken: REFRESH_TOKEN,
+                accessToken: accessToken
+            }
         });
 
-        // send mail with defined transport object
-        let info = await transporter.sendMail({
-            from: '"SammyBloom 👻" <nwachiemi@gmail.com>', // sender address
-            to: "samuelnwanwobi@gmail.com", // list of receivers
-            subject: "Hello ✔", // Subject line
-            text: "Hello world?", // plain text body
-            html: output // html body
-        });
+        let mailOptions = {
+            from: 'SammyBloom 😉 <nwachiemi@gmail.com>',
+            to: 'samuelnwanwobi@gmail.com',
+            subject:'Testing Nodemailer messages',
+            text: 'Hi World',
+            html: '<h2>Hi World</h2>'
+        };
 
-        console.log("Message sent: %s", info.messageId);
-        // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
+        // const result = await transporter.sendMail(mailOptions);
+        const result = transporter.sendMail(mailOptions);
+        return result;
 
-        // Preview only available when sending through an Ethereal account
-        console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
-        // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
+        // transporter.sendMail(mailOptions, function(err, data){
+        //     if (err){
+        //         console.log("Error "+ err);
+        //     }else{
+        //         console.log("Email sent successfully");
+        //     }
+        // });
+    
+    } catch (error) {
+        return error;
+    }
+
+    sendMail()
+        .then((result) => console.log('Email Sent', result))
+        .catch((error) => console.log(error.message));
 
         res.render('main', {
             layout: 'contact',
         }, {message: 'Email has been sent'});
-
-        main().catch(console.error);
-    }
-
+    
 });
-
 
 app.listen(3000, () => console.log('Server started...'));
