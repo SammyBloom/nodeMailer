@@ -28,8 +28,9 @@ app.get('/', (req, res) => {
 });
 
 app.post('/send', (req, res) => {
+
     const output = `
-        <p>You have a new contact request!</p>
+        <p>You have a new Contact Request!</p>
         <h3>Contact Details</h3>
         <ul>
             <li>Name: ${req.body.name}</li>
@@ -69,33 +70,26 @@ app.post('/send', (req, res) => {
             to: 'samuelnwanwobi@gmail.com',
             subject:'Testing Nodemailer messages',
             text: 'Hi World',
-            html: '<h2>Hi World</h2>'
+            html: output
         };
 
-        // const result = await transporter.sendMail(mailOptions);
-        const result = transporter.sendMail(mailOptions);
-        return result;
-
-        // transporter.sendMail(mailOptions, function(err, data){
-        //     if (err){
-        //         console.log("Error "+ err);
-        //     }else{
-        //         console.log("Email sent successfully");
-        //     }
-        // });
+        transporter.sendMail(mailOptions, (err, data) => {
+            if (err){
+                console.log("Error "+ err);
+            }else{
+                console.log("Email sent successfully");
+                console.log('Message sent: %s', info.messageId);
+                console.log('Preview URL: %s', nodemailer.getTestMessageUrl(data));
+                res.render('main', {
+                    layout: 'contact',
+                }, {message: 'Email has been sent'});
+            }
+        });
     
     } catch (error) {
         return error;
     }
 
-    sendMail()
-        .then((result) => console.log('Email Sent', result))
-        .catch((error) => console.log(error.message));
-
-        res.render('main', {
-            layout: 'contact',
-        }, {message: 'Email has been sent'});
-    
 });
 
 app.listen(3000, () => console.log('Server started...'));
